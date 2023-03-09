@@ -9,6 +9,7 @@
 import itertools
 from typing import Any, Callable, Dict, List, Optional
 import numpy as np
+import torch
 
 from quantus.helpers import asserts
 from quantus.helpers import utils
@@ -249,6 +250,7 @@ class Continuity(PerturbationMetric):
             >> metric = Metric(abs=True, normalise=False)
             >> scores = metric(model=model, x_batch=x_batch, y_batch=y_batch, a_batch=a_batch_saliency}
         """
+        self.device = device
         return super().__call__(
             model=model,
             x_batch=x_batch,
@@ -316,13 +318,16 @@ class Continuity(PerturbationMetric):
                 else False
             )
 
-            # Generate explanations on perturbed input.
+            # Generate explanation based on perturbed input x.
             a_perturbed = self.explain_func(
-                model=model.get_model(),
-                inputs=x_input,
-                targets=y,
+                inputs=torch.tensor(x_input).to(self.device),
+                target=torch.tensor(y).to(self.device),
                 **self.explain_func_kwargs,
             )
+
+            if torch.is_tensor(a_perturbed):
+                a_perturbed = a_perturbed.cpu().detach().numpy()
+
             # Taking the first element, since a_perturbed will be expanded to a batch dimension
             # not expected by the current index management functions.
             a_perturbed = utils.expand_attribution_channel(a_perturbed, x_input)[0]
@@ -356,7 +361,7 @@ class Continuity(PerturbationMetric):
 
                 # Create slice for patch.
                 patch_slice = utils.create_patch_slice(
-                    patch_size=self.patch_size,
+                    patch_size=(x_input[0].shape[0], self.patch_size, self.patch_size),
                     coords=top_left_coords,
                 )
 
@@ -416,9 +421,7 @@ class Continuity(PerturbationMetric):
 
         # Get number of patches for input shape (ignore batch and channel dim).
         self.nr_patches = utils.get_nr_patches(
-            patch_size=self.patch_size,
-            shape=x_batch.shape[2:],
-            overlap=True,
+            patch_size=self.patch_size, shape=x_batch.shape[2:], overlap=True,
         )
 
         self.dx = np.prod(x_batch.shape[2:]) // self.nr_steps

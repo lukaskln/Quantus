@@ -371,8 +371,8 @@ class Metric:
         self.explain_func_kwargs = explain_func_kwargs
 
         # Include device in explain_func_kwargs.
-        if device is not None and "device" not in self.explain_func_kwargs:
-            self.explain_func_kwargs["device"] = device
+        # if device is not None and "device" not in self.explain_func_kwargs:
+        #     self.explain_func_kwargs["device"] = device
 
         if a_batch is None:
 

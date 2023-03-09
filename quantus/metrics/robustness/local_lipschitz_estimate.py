@@ -17,6 +17,8 @@ from quantus.functions.perturb_func import gaussian_noise, perturb_batch
 from quantus.functions.similarity_func import lipschitz_constant, distance_euclidean
 from quantus.metrics.base_batched import BatchedPerturbationMetric
 
+import torch
+
 
 class LocalLipschitzEstimate(BatchedPerturbationMetric):
     """
@@ -329,30 +331,27 @@ class LocalLipschitzEstimate(BatchedPerturbationMetric):
             )
 
             x_input = model.shape_input(
-                x=x_perturbed,
-                shape=x_batch.shape,
-                channel_first=True,
-                batched=True,
+                x=x_perturbed, shape=x_batch.shape, channel_first=True, batched=True,
             )
 
             for x_instance, x_instance_perturbed in zip(x_batch, x_perturbed):
                 warn.warn_perturbation_caused_no_change(
-                    x=x_instance,
-                    x_perturbed=x_instance_perturbed,
+                    x=x_instance, x_perturbed=x_instance_perturbed,
                 )
 
             # Generate explanation based on perturbed input x.
             a_perturbed = self.explain_func(
-                model=model.get_model(),
-                inputs=x_input,
-                targets=y_batch,
+                inputs=torch.tensor(x_input).to(self.device),
+                target=torch.tensor(y_batch).to(self.device),
                 **self.explain_func_kwargs,
             )
 
+            if torch.is_tensor(a_perturbed):
+                a_perturbed = a_perturbed.cpu().detach().numpy()
+
             if self.normalise:
                 a_perturbed = self.normalise_func(
-                    a_perturbed,
-                    **self.normalise_func_kwargs,
+                    a_perturbed, **self.normalise_func_kwargs,
                 )
 
             if self.abs:

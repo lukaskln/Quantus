@@ -12,7 +12,8 @@ from functools import partial
 
 if TYPE_CHECKING:
     import tensorflow as tf
-    import torch
+
+import torch
 
 from quantus.helpers.model.model_interface import ModelInterface
 from quantus.metrics.base_batched import BatchedPerturbationMetric
@@ -200,11 +201,7 @@ class RelativeOutputStability(BatchedPerturbationMetric):
         )
 
     def relative_output_stability_objective(
-        self,
-        h_x: np.ndarray,
-        h_xs: np.ndarray,
-        e_x: np.ndarray,
-        e_xs: np.ndarray,
+        self, h_x: np.ndarray, h_xs: np.ndarray, e_x: np.ndarray, e_xs: np.ndarray,
     ) -> np.ndarray:
         """
         Computes relative output stabilities maximization objective
@@ -271,7 +268,14 @@ class RelativeOutputStability(BatchedPerturbationMetric):
         a_batch: np.ndarray
             A batch of explanations.
         """
-        a_batch = explain_func(inputs=x_batch, targets=y_batch)
+        a_batch = explain_func(
+            inputs=torch.tensor(x_batch).to(self.device),
+            target=torch.tensor(y_batch).to(self.device),
+        )
+
+        if torch.is_tensor(a_batch):
+            a_batch = a_batch.cpu().detach().numpy()
+
         if self.normalise:
             a_batch = self.normalise_func(a_batch, **self.normalise_func_kwargs)
         if self.abs:
@@ -310,9 +314,7 @@ class RelativeOutputStability(BatchedPerturbationMetric):
 
         """
         batch_size = x_batch.shape[0]
-        _explain_func = partial(
-            self.explain_func, model=model.get_model(), **self.explain_func_kwargs
-        )
+        _explain_func = partial(self.explain_func, **self.explain_func_kwargs)
         # Execute forward pass on provided inputs.
         logits = model.predict(x_batch)
         # Prepare output array.

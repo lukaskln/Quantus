@@ -12,7 +12,8 @@ from functools import partial
 
 if TYPE_CHECKING:
     import tensorflow as tf
-    import torch
+
+import torch
 
 
 from quantus.helpers.model.model_interface import ModelInterface
@@ -211,11 +212,7 @@ class RelativeRepresentationStability(BatchedPerturbationMetric):
         )
 
     def relative_representation_stability_objective(
-        self,
-        l_x: np.ndarray,
-        l_xs: np.ndarray,
-        e_x: np.ndarray,
-        e_xs: np.ndarray,
+        self, l_x: np.ndarray, l_xs: np.ndarray, e_x: np.ndarray, e_xs: np.ndarray,
     ) -> np.ndarray:
         """
         Computes relative representation stabilities maximization objective
@@ -282,7 +279,13 @@ class RelativeRepresentationStability(BatchedPerturbationMetric):
         a_batch: np.ndarray
             A batch of explanations.
         """
-        a_batch = explain_func(inputs=x_batch, targets=y_batch)
+        a_batch = explain_func(
+            inputs=torch.tensor(x_batch).to(self.device),
+            target=torch.tensor(y_batch).to(self.device),
+        )
+
+        if torch.is_tensor(a_batch):
+            a_batch = a_batch.cpu().detach().numpy()
         if self.normalise:
             a_batch = self.normalise_func(a_batch, **self.normalise_func_kwargs)
         if self.abs:
@@ -321,9 +324,7 @@ class RelativeRepresentationStability(BatchedPerturbationMetric):
 
         """
         batch_size = x_batch.shape[0]
-        _explain_func = partial(
-            self.explain_func, model=model.get_model(), **self.explain_func_kwargs
-        )
+        _explain_func = partial(self.explain_func, **self.explain_func_kwargs)
         # Retrieve internal representation for provided inputs.
         internal_representations = model.get_hidden_representations(
             x_batch, self._layer_names, self._layer_indices

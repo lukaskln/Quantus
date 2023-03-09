@@ -243,10 +243,10 @@ class Sparseness(Metric):
         float
             The evaluation results.
         """
-        if len(x.shape) == 1:
-            newshape = np.prod(x.shape)
-        else:
-            newshape = np.prod(x.shape[1:])
+        # if len(x.shape) == 1:
+        newshape = np.prod(x.shape)
+        # else:
+        #     newshape = np.prod(x.shape[1:])
 
         a = np.array(np.reshape(a, newshape), dtype=np.float64)
         a += 0.0000001
