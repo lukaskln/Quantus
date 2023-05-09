@@ -296,10 +296,14 @@ class Continuity(PerturbationMetric):
         dict
             The evaluation results.
         """
-        results: Dict[int, list] = {k: [] for k in range(self.nr_patches + 1)}
+        if x.shape[0] <= 3:
+            results: Dict[int, list] = {k: [] for k in range((self.nr_patches) + 1)}
+        else:
+            results: Dict[int, list] = {
+                k: [] for k in range(int(x.shape[0] ** 3 / self.patch_size**3) + 1)
+            }
 
         for step in range(self.nr_steps):
-
             # Generate explanation based on perturbed input x.
             dx_step = (step + 1) * self.dx
             x_perturbed = self.perturb_func(
@@ -320,7 +324,9 @@ class Continuity(PerturbationMetric):
 
             # Generate explanation based on perturbed input x.
             a_perturbed = self.explain_func(
-                inputs=torch.tensor(x_input).to(self.device),
+                inputs=torch.tensor(x_input).to(self.device)
+                if x_input.shape[1] <= 3
+                else torch.tensor(x_input).unsqueeze(1).to(self.device),
                 target=torch.tensor(y).to(self.device),
                 **self.explain_func_kwargs,
             )
@@ -330,7 +336,10 @@ class Continuity(PerturbationMetric):
 
             # Taking the first element, since a_perturbed will be expanded to a batch dimension
             # not expected by the current index management functions.
-            a_perturbed = utils.expand_attribution_channel(a_perturbed, x_input)[0]
+            if a.shape[0] <= 3:
+                a_perturbed = utils.expand_attribution_channel(a_perturbed, x_input)[0]
+            else:
+                a_perturbed = a_perturbed.squeeze()
 
             if self.normalise:
                 a_perturbed = self.normalise_func(
@@ -361,7 +370,13 @@ class Continuity(PerturbationMetric):
 
                 # Create slice for patch.
                 patch_slice = utils.create_patch_slice(
-                    patch_size=(x_input[0].shape[0], self.patch_size, self.patch_size),
+                    patch_size=(
+                        x_input[0].shape[0]
+                        if x_input[0].shape[0] <= 3
+                        else self.patch_size,
+                        self.patch_size,
+                        self.patch_size,
+                    ),
                     coords=top_left_coords,
                 )
 
@@ -421,7 +436,9 @@ class Continuity(PerturbationMetric):
 
         # Get number of patches for input shape (ignore batch and channel dim).
         self.nr_patches = utils.get_nr_patches(
-            patch_size=self.patch_size, shape=x_batch.shape[2:], overlap=True,
+            patch_size=self.patch_size,
+            shape=x_batch.shape[2:],
+            overlap=True,
         )
 
         self.dx = np.prod(x_batch.shape[2:]) // self.nr_steps

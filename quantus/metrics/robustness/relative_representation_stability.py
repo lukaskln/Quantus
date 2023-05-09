@@ -212,7 +212,11 @@ class RelativeRepresentationStability(BatchedPerturbationMetric):
         )
 
     def relative_representation_stability_objective(
-        self, l_x: np.ndarray, l_xs: np.ndarray, e_x: np.ndarray, e_xs: np.ndarray,
+        self,
+        l_x: np.ndarray,
+        l_xs: np.ndarray,
+        e_x: np.ndarray,
+        e_xs: np.ndarray,
     ) -> np.ndarray:
         """
         Computes relative representation stabilities maximization objective
@@ -280,7 +284,9 @@ class RelativeRepresentationStability(BatchedPerturbationMetric):
             A batch of explanations.
         """
         a_batch = explain_func(
-            inputs=torch.tensor(x_batch).to(self.device),
+            inputs=torch.tensor(x_batch).to(self.device)
+            if x_batch.shape[1] <= 3
+            else torch.tensor(x_batch).unsqueeze(1).to(self.device),
             target=torch.tensor(y_batch).to(self.device),
         )
 
@@ -290,7 +296,10 @@ class RelativeRepresentationStability(BatchedPerturbationMetric):
             a_batch = self.normalise_func(a_batch, **self.normalise_func_kwargs)
         if self.abs:
             a_batch = np.abs(a_batch)
-        return expand_attribution_channel(a_batch, x_batch)
+        if x_batch.shape[1] <= 3:
+            return expand_attribution_channel(a_batch, x_batch)
+        else:
+            return a_batch.squeeze()
 
     def evaluate_batch(
         self,

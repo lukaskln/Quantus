@@ -201,7 +201,11 @@ class RelativeOutputStability(BatchedPerturbationMetric):
         )
 
     def relative_output_stability_objective(
-        self, h_x: np.ndarray, h_xs: np.ndarray, e_x: np.ndarray, e_xs: np.ndarray,
+        self,
+        h_x: np.ndarray,
+        h_xs: np.ndarray,
+        e_x: np.ndarray,
+        e_xs: np.ndarray,
     ) -> np.ndarray:
         """
         Computes relative output stabilities maximization objective
@@ -269,7 +273,9 @@ class RelativeOutputStability(BatchedPerturbationMetric):
             A batch of explanations.
         """
         a_batch = explain_func(
-            inputs=torch.tensor(x_batch).to(self.device),
+            inputs=torch.tensor(x_batch).to(self.device)
+            if x_batch.shape[1] <= 3
+            else torch.tensor(x_batch).unsqueeze(1).to(self.device),
             target=torch.tensor(y_batch).to(self.device),
         )
 
@@ -280,7 +286,10 @@ class RelativeOutputStability(BatchedPerturbationMetric):
             a_batch = self.normalise_func(a_batch, **self.normalise_func_kwargs)
         if self.abs:
             a_batch = np.abs(a_batch)
-        return expand_attribution_channel(a_batch, x_batch)
+        if x_batch.shape[1] <= 3:
+            return expand_attribution_channel(a_batch, x_batch)
+        else:
+            return a_batch.squeeze()
 
     def evaluate_batch(
         self,

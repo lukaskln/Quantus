@@ -311,7 +311,6 @@ class LocalLipschitzEstimate(BatchedPerturbationMetric):
         similarities = np.zeros((batch_size, self.nr_samples)) * np.nan
 
         for step_id in range(self.nr_samples):
-
             # Perturb input.
             x_perturbed = perturb_batch(
                 perturb_func=self.perturb_func,
@@ -331,17 +330,23 @@ class LocalLipschitzEstimate(BatchedPerturbationMetric):
             )
 
             x_input = model.shape_input(
-                x=x_perturbed, shape=x_batch.shape, channel_first=True, batched=True,
+                x=x_perturbed,
+                shape=x_batch.shape,
+                channel_first=True,
+                batched=True,
             )
 
             for x_instance, x_instance_perturbed in zip(x_batch, x_perturbed):
                 warn.warn_perturbation_caused_no_change(
-                    x=x_instance, x_perturbed=x_instance_perturbed,
+                    x=x_instance,
+                    x_perturbed=x_instance_perturbed,
                 )
 
             # Generate explanation based on perturbed input x.
             a_perturbed = self.explain_func(
-                inputs=torch.tensor(x_input).to(self.device),
+                inputs=torch.tensor(x_input).to(self.device)
+                if x_input.shape[1] <= 3
+                else torch.tensor(x_input).unsqueeze(1).to(self.device),
                 target=torch.tensor(y_batch).to(self.device),
                 **self.explain_func_kwargs,
             )
@@ -351,7 +356,8 @@ class LocalLipschitzEstimate(BatchedPerturbationMetric):
 
             if self.normalise:
                 a_perturbed = self.normalise_func(
-                    a_perturbed, **self.normalise_func_kwargs,
+                    a_perturbed,
+                    **self.normalise_func_kwargs,
                 )
 
             if self.abs:
