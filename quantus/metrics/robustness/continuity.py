@@ -368,15 +368,16 @@ class Continuity(PerturbationMetric):
                     results[ix_patch].append(np.nan)
                     continue
 
+                if x_input[0].shape[0] <= 3 and len(x_input[0].shape) > 2:
+                    patch = (x_input[0].shape[0], self.patch_size, self.patch_size)
+                elif len(x_input[0].shape) == 2:
+                    patch = (self.patch_size, 1)
+                else: 
+                    patch = (self.patch_size, self.patch_size, self.patch_size)
+
                 # Create slice for patch.
                 patch_slice = utils.create_patch_slice(
-                    patch_size=(
-                        x_input[0].shape[0]
-                        if x_input[0].shape[0] <= 3
-                        else self.patch_size,
-                        self.patch_size,
-                        self.patch_size,
-                    ),
+                    patch_size=patch,
                     coords=top_left_coords,
                 )
 

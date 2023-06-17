@@ -380,15 +380,9 @@ def translation_x_direction(
          The array which some of its indices have been perturbed.
     """
 
-    if arr.ndim != 3:
-        raise ValueError(
-            "perturb func 'translation_x_direction' requires image-type data."
-            "Check that this perturb_func receives a 3D array."
-        )
-
     matrix = np.float32([[1, 0, perturb_dx], [0, 1, 0]])
 
-    if arr.shape[0] <= 3:
+    if arr.shape[0] <= 3 and len(arr.shape) > 2:
         arr_perturbed = cv2.warpAffine(
             np.moveaxis(arr, 0, -1),
             matrix,
@@ -401,6 +395,9 @@ def translation_x_direction(
             ),
         )
         arr_perturbed = np.moveaxis(arr_perturbed, -1, 0)
+    elif len(arr.shape) == 2:
+        arr_perturbed = arr.T +  np.array([0.05,0,0],dtype="float32")
+        arr_perturbed = arr_perturbed.T
     else:
         arr_perturbed = np.zeros_like(arr)
         for i in range(arr.shape[0]):

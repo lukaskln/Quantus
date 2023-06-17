@@ -972,6 +972,7 @@ def offset_coordinates(
     valid = ~((x < 0) | (y < 0) | (x >= img_shape[1]) | (y >= img_shape[2]))
     off_coords = indices + offset[0] * img_shape[2] + offset[1]
 
+
     return off_coords[valid], valid
 
 
