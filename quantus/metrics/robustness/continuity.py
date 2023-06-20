@@ -17,7 +17,7 @@ from quantus.helpers import warn
 from quantus.helpers.model.model_interface import ModelInterface
 from quantus.functions.normalise_func import normalise_by_max
 from quantus.functions.perturb_func import translation_x_direction
-from quantus.functions.similarity_func import lipschitz_constant
+from quantus.functions.similarity_func import lipschitz_constant, correlation_pearson
 from quantus.metrics.base import PerturbationMetric
 
 
@@ -132,7 +132,7 @@ class Continuity(PerturbationMetric):
 
         # Save metric-specific attributes.
         if similarity_func is None:
-            similarity_func = lipschitz_constant
+            similarity_func = correlation_pearson
         self.similarity_func = similarity_func
         self.patch_size = patch_size
         self.nr_steps = nr_steps
@@ -457,13 +457,11 @@ class Continuity(PerturbationMetric):
         relationship between change in explanation and change in function output. It can be seen as an
         quantitative interpretation of visually determining how similar f(x) and R(x1) curves are.
         """
-        return np.mean(
-            [
+        return [np.mean([
                 self.similarity_func(
                     self.last_results[sample][self.nr_patches],
                     self.last_results[sample][ix_patch],
                 )
-                for ix_patch in range(self.nr_patches)
-                for sample in self.last_results.keys()
+                for ix_patch in range(self.nr_patches)])
+                for sample in range(len(self.last_results))
             ]
-        )

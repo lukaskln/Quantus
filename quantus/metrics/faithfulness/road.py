@@ -365,7 +365,7 @@ class ROAD(PerturbationMetric):
 
         # Calculate accuracy for every number of most important pixels removed.
 
-        self.last_results = {
-            percentage: np.mean(np.array(self.last_results)[:, p_ix])
-            for p_ix, percentage in enumerate(self.percentages)
-        }
+        # self.last_results = {
+        #     percentage: np.mean(np.array(self.last_results)[:, p_ix])
+        #     for p_ix, percentage in enumerate(self.percentages)
+        # }
