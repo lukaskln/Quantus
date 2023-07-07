@@ -218,7 +218,7 @@ class Sufficiency(Metric):
             y_batch=y_batch,
             a_batch=a_batch,
             s_batch=s_batch,
-            custom_batch=None,
+            custom_batch=custom_batch,
             channel_first=channel_first,
             explain_func=explain_func,
             explain_func_kwargs=explain_func_kwargs,
@@ -238,6 +238,7 @@ class Sufficiency(Metric):
         i: int = None,
         a_sim_vector: np.ndarray = None,
         y_pred_classes: np.ndarray = None,
+        custom=None,
     ) -> float:
         """
         Evaluate instance gets model and data for a single instance as input and returns the evaluation result.
@@ -268,9 +269,9 @@ class Sufficiency(Metric):
         """
 
         # Metric logic.
-        pred_a = y_pred_classes[i]
+        pred_a = y_pred_classes[custom[3][i]]
         low_dist_a = np.argwhere(a_sim_vector == 1.0).flatten()
-        low_dist_a = low_dist_a[low_dist_a != i]
+        low_dist_a = low_dist_a[low_dist_a != custom[3][i]]
         pred_low_dist_a = y_pred_classes[low_dist_a]
 
         if len(low_dist_a) == 0:
@@ -311,19 +312,28 @@ class Sufficiency(Metric):
         """
 
         a_batch_flat = a_batch.reshape(a_batch.shape[0], -1)
-        dist_matrix = cdist(a_batch_flat, a_batch_flat, self.distance_func, V=None)
+        a_batch_full_flat = custom_batch[2].reshape(custom_batch[2].shape[0], -1)
+        dist_matrix = cdist(a_batch_flat, a_batch_full_flat, self.distance_func, V=None)
         dist_matrix = self.normalise_func(dist_matrix)
         a_sim_matrix = np.zeros_like(dist_matrix)
         a_sim_matrix[dist_matrix <= self.threshold] = 1
 
         # Predict on input.
         x_input = model.shape_input(
-            x_batch, x_batch[0].shape, channel_first=True, batched=True
+            custom_batch[0], custom_batch[0][0].shape, channel_first=True, batched=True
         )
 
-        y_pred_classes = np.argmax(model.predict(x_input), axis=1).flatten()
+        y_pred_classes = []
+        batch_size = np.minimum(x_input.shape[0], 10)
+        for i in range(0, x_input.shape[0], batch_size):
+            # Get the next batch
+            batch_data = x_input[i : i + batch_size]
+
+            outputs = np.argmax(model.predict(batch_data), axis=1).flatten()
+            y_pred_classes.extend(outputs)
+
         return {
             "i_batch": np.arange(x_batch.shape[0]),
             "a_sim_vector_batch": a_sim_matrix,
-            "y_pred_classes": y_pred_classes,
+            "y_pred_classes": np.array(y_pred_classes),
         }
