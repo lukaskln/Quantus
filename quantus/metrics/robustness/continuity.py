@@ -47,6 +47,7 @@ class Continuity(PerturbationMetric):
         nr_steps: int = 28,
         patch_size: int = 7,
         abs: bool = True,
+        modality = "Image",
         normalise: bool = True,
         normalise_func: Optional[Callable[[np.ndarray], np.ndarray]] = None,
         normalise_func_kwargs: Optional[Dict[str, Any]] = None,
@@ -105,6 +106,7 @@ class Continuity(PerturbationMetric):
         kwargs: optional
             Keyword arguments.
         """
+        self.modality = modality
         if normalise_func is None:
             normalise_func = normalise_by_max
 
@@ -296,12 +298,8 @@ class Continuity(PerturbationMetric):
         dict
             The evaluation results.
         """
-        if x.shape[0] <= 3:
-            results: Dict[int, list] = {k: [] for k in range((self.nr_patches) + 1)}
-        else:
-            results: Dict[int, list] = {
-                k: [] for k in range(int(x.shape[0] ** 3 / self.patch_size**3) + 1)
-            }
+
+        results: Dict[int, list] = {k: [] for k in range((self.nr_patches) + 1)}
 
         for step in range(self.nr_steps):
             # Generate explanation based on perturbed input x.
@@ -368,9 +366,9 @@ class Continuity(PerturbationMetric):
                     results[ix_patch].append(np.nan)
                     continue
 
-                if x_input[0].shape[0] <= 3 and len(x_input[0].shape) > 2:
+                if self.modality == "Image":
                     patch = (x_input[0].shape[0], self.patch_size, self.patch_size)
-                elif len(x_input[0].shape) == 2:
+                elif self.modality == "Point_Cloud":
                     patch = (self.patch_size, 1)
                 else: 
                     patch = (self.patch_size, self.patch_size, self.patch_size)
@@ -436,19 +434,34 @@ class Continuity(PerturbationMetric):
         """
 
         # Get number of patches for input shape (ignore batch and channel dim).
-        self.nr_patches = utils.get_nr_patches(
-            patch_size=self.patch_size,
-            shape=x_batch.shape[2:],
-            overlap=True,
-        )
+        if self.modality == "Image":
+            self.nr_patches = utils.get_nr_patches(
+                patch_size=self.patch_size,
+                shape=x_batch.shape[2:],
+                overlap=True,
+            )
 
-        self.dx = np.prod(x_batch.shape[2:]) // self.nr_steps
+            self.dx = np.prod(x_batch.shape[2:]) // self.nr_steps
+            asserts.assert_patch_size(patch_size=self.patch_size, shape=x_batch.shape[2:])
+        elif self.modality == "Point_Cloud":
+            self.nr_patches = utils.get_nr_patches(
+                patch_size=self.patch_size,
+                shape=x_batch.shape[1:],
+                overlap=False,
+            )
+            self.nr_patches += 1
+            self.dx = np.prod(x_batch.shape[1:]) // self.nr_steps
+            asserts.assert_patch_size(patch_size=self.patch_size, shape=x_batch.shape[1:])   
+        else:
+            self.nr_patches = int(x_batch.shape[1] ** 3 / self.patch_size**3)
+            self.dx = np.prod(x_batch.shape[1:]) // self.nr_steps
+            asserts.assert_patch_size(patch_size=self.patch_size, shape=x_batch.shape[1:])
+
 
         # Asserts.
         # Additional explain_func assert, as the one in prepare() won't be
         # executed when a_batch != None.
         asserts.assert_explain_func(explain_func=self.explain_func)
-        asserts.assert_patch_size(patch_size=self.patch_size, shape=x_batch.shape[2:])
 
     @property
     def aggregated_score(self):
@@ -458,10 +471,12 @@ class Continuity(PerturbationMetric):
         quantitative interpretation of visually determining how similar f(x) and R(x1) curves are.
         """
         return [np.mean([
-                self.similarity_func(
-                    self.last_results[sample][self.nr_patches],
-                    self.last_results[sample][ix_patch],
-                )
+                np.nan_to_num(
+                    self.similarity_func(
+                        self.last_results[sample][self.nr_patches],
+                        self.last_results[sample][ix_patch],
+                    )
+                ) if np.sum(np.isnan(self.last_results[sample][ix_patch])) == 0 else 0
                 for ix_patch in range(self.nr_patches)])
                 for sample in range(len(self.last_results))
             ]

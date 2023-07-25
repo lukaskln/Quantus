@@ -13,6 +13,7 @@ from typing import Any, Dict, Optional, Sequence, Tuple, Union, List
 
 import numpy as np
 from skimage.segmentation import slic, felzenszwalb
+from sklearn.cluster import KMeans
 
 from quantus.helpers import asserts
 from quantus.helpers.model.model_interface import ModelInterface
@@ -42,22 +43,25 @@ def get_superpixel_segments(img: np.ndarray, segmentation_method: str) -> np.nda
         CxWxH segmented image array.
     """
 
-    if img.ndim != 3:
-        raise ValueError(
-            "Make sure that x is 3 dimensional e.g., (3, 224, 224) to calculate super-pixels."
-            f" shape: {img.shape}"
-        )
-    if segmentation_method not in ["slic", "felzenszwalb"]:
+    # if img.ndim != 3:
+    #     raise ValueError(
+    #         "Make sure that x is 3 dimensional e.g., (3, 224, 224) to calculate super-pixels."
+    #         f" shape: {img.shape}"
+    #     )
+    if segmentation_method not in ["slic", "felzenszwalb", "knn"]:
         raise ValueError(
             "'segmentation_method' must be either 'slic' or 'felzenszwalb'."
         )
 
     if segmentation_method == "slic":
-        return slic(img, start_label=0)
+        return slic(img, start_label=0, channel_axis=0)
     elif segmentation_method == "felzenszwalb":
         return felzenszwalb(
             img,
         )
+    elif segmentation_method == "knn":
+        model = KMeans(n_clusters=16)
+        return model.fit(np.moveaxis(img,0,1)).predict(np.moveaxis(img,0,1))
 
 
 def get_baseline_value(

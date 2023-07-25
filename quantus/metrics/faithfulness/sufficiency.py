@@ -14,7 +14,7 @@ from scipy.spatial.distance import cdist
 from quantus.helpers import asserts
 from quantus.helpers import warn
 from quantus.helpers.model.model_interface import ModelInterface
-from quantus.functions.normalise_func import normalise_by_max
+from quantus.functions.normalise_func import normalise_by_max, normalise_by_average_second_moment_estimate
 from quantus.metrics.base import Metric
 
 
@@ -43,6 +43,7 @@ class Sufficiency(Metric):
         distance_func: str = "seuclidean",
         abs: bool = True,
         normalise: bool = True,
+        modality = "Image",
         normalise_func: Optional[Callable[[np.ndarray], np.ndarray]] = None,
         normalise_func_kwargs: Optional[Dict[str, Any]] = None,
         return_aggregate: bool = False,
@@ -87,6 +88,7 @@ class Sufficiency(Metric):
         kwargs: optional
             Keyword arguments.
         """
+        self.modality = modality
         if normalise_func is None:
             normalise_func = normalise_by_max
 
@@ -313,7 +315,7 @@ class Sufficiency(Metric):
 
         a_batch_flat = a_batch.reshape(a_batch.shape[0], -1)
         a_batch_full_flat = custom_batch[2].reshape(custom_batch[2].shape[0], -1)
-        dist_matrix = cdist(a_batch_flat, a_batch_full_flat, self.distance_func, V=None)
+        dist_matrix = cdist(a_batch_flat, a_batch_full_flat, "sqeuclidean" if self.modality == "Voxel" else "seuclidean")
         dist_matrix = self.normalise_func(dist_matrix)
         a_sim_matrix = np.zeros_like(dist_matrix)
         a_sim_matrix[dist_matrix <= self.threshold] = 1

@@ -249,7 +249,7 @@ class Sparseness(Metric):
         #     newshape = np.prod(x.shape[1:])
 
         a = np.array(np.reshape(a, newshape), dtype=np.float64)
-        a += 0.0000001
+        a += 0.000000001
         a = np.sort(a)
         score = (np.sum((2 * np.arange(1, a.shape[0] + 1) - a.shape[0] - 1) * a)) / (
             a.shape[0] * np.sum(a)

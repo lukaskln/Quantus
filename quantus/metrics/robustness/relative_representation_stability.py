@@ -21,7 +21,7 @@ from quantus.metrics.base_batched import BatchedPerturbationMetric
 from quantus.helpers.warn import warn_parameterisation
 from quantus.helpers.asserts import attributes_check
 from quantus.functions.normalise_func import normalise_by_average_second_moment_estimate
-from quantus.functions.perturb_func import uniform_noise, perturb_batch
+from quantus.functions.perturb_func import uniform_noise, perturb_batch, gaussian_noise
 from quantus.helpers.utils import expand_attribution_channel
 
 
@@ -103,7 +103,7 @@ class RelativeRepresentationStability(BatchedPerturbationMetric):
             perturb_func = uniform_noise
 
         if perturb_func_kwargs is None:
-            perturb_func_kwargs = {"upper_bound": 0.2}
+            perturb_func_kwargs = {"lower_bound": 0.0, "upper_bound": 0.05}
 
         super().__init__(
             abs=abs,
