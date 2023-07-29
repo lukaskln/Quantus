@@ -396,8 +396,17 @@ def translation_x_direction(
         )
         arr_perturbed = np.moveaxis(arr_perturbed, -1, 0)
     elif len(arr.shape) == 2:
-        arr_perturbed = arr.T +  np.array([0.05,0,0],dtype="float32")
+        arr_perturbed = arr.T + np.array(
+            [2 * (perturb_dx / kwargs["dx_max"]), 0, 0],
+            dtype="float32",
+        )
         arr_perturbed = arr_perturbed.T
+
+        for i in range(arr_perturbed.shape[1]):
+            if np.any(arr_perturbed[:, i] > 1):
+                arr_perturbed[:, i] = 0
+            if np.any(arr_perturbed[:, i] < -1):
+                arr_perturbed[:, i] = 0
     else:
         arr_perturbed = np.zeros_like(arr)
         for i in range(arr.shape[0]):

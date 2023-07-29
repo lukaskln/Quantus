@@ -47,7 +47,7 @@ class Continuity(PerturbationMetric):
         nr_steps: int = 28,
         patch_size: int = 7,
         abs: bool = True,
-        modality = "Image",
+        modality="Image",
         normalise: bool = True,
         normalise_func: Optional[Callable[[np.ndarray], np.ndarray]] = None,
         normalise_func_kwargs: Optional[Dict[str, Any]] = None,
@@ -301,6 +301,8 @@ class Continuity(PerturbationMetric):
 
         results: Dict[int, list] = {k: [] for k in range((self.nr_patches) + 1)}
 
+        dx_max = self.dx * self.nr_steps
+
         for step in range(self.nr_steps):
             # Generate explanation based on perturbed input x.
             dx_step = (step + 1) * self.dx
@@ -309,6 +311,7 @@ class Continuity(PerturbationMetric):
                 indices=np.arange(0, x.size),
                 indexed_axes=np.arange(0, x.ndim),
                 perturb_dx=dx_step,
+                dx_max=dx_max,
                 **self.perturb_func_kwargs,
             )
             x_input = model.shape_input(x_perturbed, x.shape, channel_first=True)
@@ -370,7 +373,7 @@ class Continuity(PerturbationMetric):
                     patch = (x_input[0].shape[0], self.patch_size, self.patch_size)
                 elif self.modality == "Point_Cloud":
                     patch = (self.patch_size, 1)
-                else: 
+                else:
                     patch = (self.patch_size, self.patch_size, self.patch_size)
 
                 # Create slice for patch.
@@ -442,7 +445,9 @@ class Continuity(PerturbationMetric):
             )
 
             self.dx = np.prod(x_batch.shape[2:]) // self.nr_steps
-            asserts.assert_patch_size(patch_size=self.patch_size, shape=x_batch.shape[2:])
+            asserts.assert_patch_size(
+                patch_size=self.patch_size, shape=x_batch.shape[2:]
+            )
         elif self.modality == "Point_Cloud":
             self.nr_patches = utils.get_nr_patches(
                 patch_size=self.patch_size,
@@ -451,12 +456,15 @@ class Continuity(PerturbationMetric):
             )
             self.nr_patches += 1
             self.dx = np.prod(x_batch.shape[1:]) // self.nr_steps
-            asserts.assert_patch_size(patch_size=self.patch_size, shape=x_batch.shape[1:])   
+            asserts.assert_patch_size(
+                patch_size=self.patch_size, shape=x_batch.shape[1:]
+            )
         else:
             self.nr_patches = int(x_batch.shape[1] ** 3 / self.patch_size**3)
             self.dx = np.prod(x_batch.shape[1:]) // self.nr_steps
-            asserts.assert_patch_size(patch_size=self.patch_size, shape=x_batch.shape[1:])
-
+            asserts.assert_patch_size(
+                patch_size=self.patch_size, shape=x_batch.shape[1:]
+            )
 
         # Asserts.
         # Additional explain_func assert, as the one in prepare() won't be
@@ -470,13 +478,19 @@ class Continuity(PerturbationMetric):
         relationship between change in explanation and change in function output. It can be seen as an
         quantitative interpretation of visually determining how similar f(x) and R(x1) curves are.
         """
-        return [np.mean([
-                np.nan_to_num(
-                    self.similarity_func(
-                        self.last_results[sample][self.nr_patches],
-                        self.last_results[sample][ix_patch],
+        return [
+            np.mean(
+                [
+                    np.nan_to_num(
+                        self.similarity_func(
+                            self.last_results[sample][self.nr_patches],
+                            self.last_results[sample][ix_patch],
+                        )
                     )
-                ) if np.sum(np.isnan(self.last_results[sample][ix_patch])) == 0 else 0
-                for ix_patch in range(self.nr_patches)])
-                for sample in range(len(self.last_results))
-            ]
+                    if np.sum(np.isnan(self.last_results[sample][ix_patch])) == 0
+                    else 0
+                    for ix_patch in range(self.nr_patches)
+                ]
+            )
+            for sample in range(len(self.last_results))
+        ]
