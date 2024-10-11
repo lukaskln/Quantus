@@ -274,6 +274,8 @@ class Sufficiency(Metric):
         pred_a = y_pred_classes[custom[3][i]]
         low_dist_a = np.argwhere(a_sim_vector == 1.0).flatten()
         low_dist_a = low_dist_a[low_dist_a != custom[3][i]]
+
+        assert y_pred_classes.shape[0] > low_dist_a.shape[0], "Dataset batch size has to be larger than num_classes in sufficiency metric"
         pred_low_dist_a = y_pred_classes[low_dist_a]
 
         if len(low_dist_a) == 0:
@@ -315,7 +317,7 @@ class Sufficiency(Metric):
 
         a_batch_flat = a_batch.reshape(a_batch.shape[0], -1)
         a_batch_full_flat = custom_batch[2].reshape(custom_batch[2].shape[0], -1)
-        dist_matrix = cdist(a_batch_flat, a_batch_full_flat, "sqeuclidean" if self.modality == "Voxel" else "seuclidean")
+        dist_matrix = cdist(a_batch_flat, a_batch_full_flat, "sqeuclidean" if self.modality == "volume" else "seuclidean")
         dist_matrix = self.normalise_func(dist_matrix)
         a_sim_matrix = np.zeros_like(dist_matrix)
         a_sim_matrix[dist_matrix <= self.threshold] = 1

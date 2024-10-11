@@ -227,6 +227,7 @@ class Consistency(Metric):
         i: int = None,
         a_label: np.ndarray = None,
         y_pred_classes: np.ndarray = None,
+        **kwargs
     ) -> float:
         """
         Evaluate instance gets model and data for a single instance as input and returns the evaluation result.

@@ -253,6 +253,7 @@ class ROAD(PerturbationMetric):
         y: np.ndarray,
         a: np.ndarray,
         s: np.ndarray,
+        **kwargs
     ) -> List[float]:
         """
         Evaluate instance gets model and data for a single instance as input and returns the evaluation result.
@@ -276,6 +277,9 @@ class ROAD(PerturbationMetric):
             The evaluation results.
         """
         # Order indices.
+        if a.shape[0] == 3:
+            a = np.expand_dims(np.mean(a, 0), 0)
+
         ordered_indices = np.argsort(a, axis=None)[::-1]
 
         results_instance = np.array([None for _ in self.percentages])

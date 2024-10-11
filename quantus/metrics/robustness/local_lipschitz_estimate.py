@@ -284,6 +284,7 @@ class LocalLipschitzEstimate(BatchedPerturbationMetric):
         y_batch: np.ndarray,
         a_batch: np.ndarray,
         s_batch: np.ndarray,
+        **kwargs
     ) -> np.ndarray:
         """
         Evaluates model and attributes on a single data batch and returns the batched evaluation result.

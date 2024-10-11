@@ -221,6 +221,7 @@ class Sparseness(Metric):
         y: np.ndarray,
         a: np.ndarray,
         s: np.ndarray,
+        **kwargs
     ) -> float:
         """
         Evaluate instance gets model and data for a single instance as input and returns the evaluation result.

@@ -245,6 +245,11 @@ class Metric:
 
         self.all_results.append(self.last_results)
 
+        try:
+            self.last_results = self.get_auc_score()
+        except (RuntimeError, TypeError, NameError, AttributeError):
+            pass
+
         return self.last_results
 
     @abstractmethod
@@ -255,6 +260,7 @@ class Metric:
         y: Optional[np.ndarray],
         a: Optional[np.ndarray],
         s: Optional[np.ndarray],
+        **kwargs
     ) -> Any:
         """
         Evaluate instance gets model and data for a single instance as input and returns the evaluation result.

@@ -219,6 +219,7 @@ class EffectiveComplexity(Metric):
         y: np.ndarray,
         a: np.ndarray,
         s: np.ndarray,
+        **kwargs
     ) -> int:
         """
         Evaluate instance gets model and data for a single instance as input and returns the evaluation result.

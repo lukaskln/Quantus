@@ -276,6 +276,7 @@ class Continuity(PerturbationMetric):
         y: np.ndarray,
         a: np.ndarray,
         s: np.ndarray,
+        **kwargs
     ) -> Dict:
         """
         Evaluate instance gets model and data for a single instance as input and returns the evaluation result.
@@ -369,9 +370,9 @@ class Continuity(PerturbationMetric):
                     results[ix_patch].append(np.nan)
                     continue
 
-                if self.modality == "Image":
+                if self.modality.lower() == "image":
                     patch = (x_input[0].shape[0], self.patch_size, self.patch_size)
-                elif self.modality == "Point_Cloud":
+                elif self.modality.lower() == "point_cloud":
                     patch = (self.patch_size, 1)
                 else:
                     patch = (self.patch_size, self.patch_size, self.patch_size)
@@ -437,7 +438,7 @@ class Continuity(PerturbationMetric):
         """
 
         # Get number of patches for input shape (ignore batch and channel dim).
-        if self.modality == "Image":
+        if self.modality == "image":
             self.nr_patches = utils.get_nr_patches(
                 patch_size=self.patch_size,
                 shape=x_batch.shape[2:],
@@ -448,7 +449,7 @@ class Continuity(PerturbationMetric):
             asserts.assert_patch_size(
                 patch_size=self.patch_size, shape=x_batch.shape[2:]
             )
-        elif self.modality == "Point_Cloud":
+        elif self.modality == "point_cloud":
             self.nr_patches = utils.get_nr_patches(
                 patch_size=self.patch_size,
                 shape=x_batch.shape[1:],
@@ -472,7 +473,7 @@ class Continuity(PerturbationMetric):
         asserts.assert_explain_func(explain_func=self.explain_func)
 
     @property
-    def aggregated_score(self):
+    def get_auc_score(self):
         """
         Implements a continuity correlation score (an addition to the original method) to evaluate the
         relationship between change in explanation and change in function output. It can be seen as an
